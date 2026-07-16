@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 
 from database import Product, Price, CollectionLog, Session
-
+from database import Alert
 
 def format_datetime(value):
 
@@ -522,6 +522,69 @@ def dashboard_page(session):
             "분석 가능한 상품이 없습니다."
         )
 
+
+    # ==========================
+    # Recent Alerts
+    # ==========================
+
+    st.subheader("🚨 Recent Alerts")
+
+
+    alerts = (
+        session.query(Alert)
+        .order_by(
+            Alert.id.desc()
+        )
+        .limit(5)
+        .all()
+    )
+
+
+    if alerts:
+
+
+        for alert in alerts:
+
+
+            product = (
+                session.query(Product)
+                .filter(
+                    Product.id == alert.product_id
+                )
+                .first()
+            )
+
+
+            if product:
+
+
+                with st.container(border=True):
+
+
+                    st.markdown(
+                        f"🔻 {product.product}"
+                    )
+
+
+                    st.write(
+                        f"${alert.old_price:.2f}"
+                        " → "
+                        f"${alert.new_price:.2f}"
+                    )
+
+
+                    st.caption(
+                        f"{alert.change_rate:+.1f}% | "
+                        f"{alert.alert_type}"
+                    )
+
+
+    else:
+
+
+        st.info(
+            "최근 알림이 없습니다."
+        )
 
 
 
