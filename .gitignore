@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+
+# Database
+*.db
+
+# Environment
+venv/
+.env
+
+# Streamlit
+.streamlit/
+
+# Backup files
+*_백업.py
+
+# OS
+Thumbs.db
