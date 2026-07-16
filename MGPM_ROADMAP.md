@@ -1,5 +1,5 @@
 # MGPM Roadmap
-(Market / Global Price Monitoring)
+Market Global Price Monitoring
 
 ---
 
@@ -7,20 +7,20 @@
 
 ## v0.1 Dashboard Stable ✅
 
-Release Date:
+Release:
 2026-07-16
 
 Completed:
 
-- Python + Streamlit 기반 Dashboard 구축
-- Product Database 구축
-- Price Collection 기능
-- Scheduler 자동 수집
-- Collection Log 관리
-- Price Movement 표시
+- Streamlit Dashboard
+- Product Database
+- Price Collector
+- Scheduler
+- Collection Log
+- Price Movement
 - Country / Channel / Product Filter
 - Product Information Card
-- Git Version Control 적용
+- Git Version Control
 
 
 ---
@@ -30,27 +30,32 @@ Completed:
 ## v0.2 Price Intelligence 🚧
 
 Goal:
-가격 데이터를 단순 표시에서 분석 가능한 형태로 발전
+
+Transform price monitoring into price analysis system.
 
 
-Planned Features:
+## Planned Features
 
-### Price History
-- 가격 변화 그래프
-- 기간별 가격 조회
-- 최저가 / 최고가 표시
+### Price History Chart
+
+- Daily price history graph
+- Period filter
+- Lowest price tracking
+- Highest price tracking
 
 
 ### Price Analysis
-- 최근 가격 변동률
-- 가격 상승 / 하락 표시
-- 평균 가격 계산
+
+- Price change rate
+- Average price
+- Price trend
 
 
-### Monitoring Enhancement
-- 수집 성공률 Dashboard
-- 마지막 수집 시간 개선
-- Error Log 관리
+### Monitoring Improvement
+
+- Collection success rate
+- Error log dashboard
+- Last collection status improvement
 
 
 ---
@@ -59,31 +64,18 @@ Planned Features:
 
 ## v0.3 Multi Product
 
-Planned:
+- Multiple SKU monitoring
+- Product group management
 
-- Multiple Product Monitoring
-- SKU Management
-- Product Group
-
-
----
 
 ## v0.4 Multi Country
 
-Planned:
+- Currency conversion
+- Country comparison
 
-- Country Dashboard
-- Currency Conversion
-- Regional Price Comparison
-
-
----
 
 ## v0.5 Smart Monitoring
 
-Planned:
-
-- Price Alert
-- Competitor Monitoring
-- AI Price Analysis
-- Market Trend Prediction
+- Price alert
+- Competitor monitoring
+- AI price analysis
