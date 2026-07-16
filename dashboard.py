@@ -83,9 +83,8 @@ def dashboard_page(session):
 )
 
     st.caption(
-    "MGPM v1.2 Stable"
+    "MGPM v0.2 Price Intelligence"
 )
-
     # ==========================
     # 자동 수집 상태
     # ==========================
