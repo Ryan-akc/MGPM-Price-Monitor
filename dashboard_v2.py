@@ -145,6 +145,112 @@ def dashboard_page(session):
     
 
     # ==========================
+    # Collection Monitoring
+    # ==========================
+
+    st.subheader("📡 Collection Monitoring")
+
+
+    logs = (
+        session.query(CollectionLog)
+        .order_by(
+            CollectionLog.id.desc()
+        )
+        .limit(30)
+        .all()
+    )
+
+
+    if logs:
+
+
+        total_runs = len(logs)
+
+
+        success_runs = len(
+            [
+                log for log in logs
+                if log.status == "SUCCESS"
+            ]
+        )
+
+
+        fail_runs = (
+            total_runs
+            -
+            success_runs
+        )
+
+
+        success_rate = (
+            success_runs
+            /
+            total_runs
+            *
+            100
+        )
+
+
+        avg_products = (
+            sum(
+                log.total_count
+                for log in logs
+                if log.total_count
+            )
+            /
+            total_runs
+        )
+
+
+        c1, c2, c3, c4 = st.columns(4)
+
+
+        with c1:
+
+            st.metric(
+                "🔄 실행 횟수",
+                total_runs
+            )
+
+
+        with c2:
+
+            st.metric(
+                "✅ 성공",
+                success_runs
+            )
+
+
+        with c3:
+
+            st.metric(
+                "❌ 실패",
+                fail_runs
+            )
+
+
+        with c4:
+
+            st.metric(
+                "📈 성공률",
+                f"{success_rate:.1f}%"
+            )
+
+
+        st.caption(
+            f"평균 수집 상품 : {avg_products:.1f}개"
+        )
+
+
+    else:
+
+        st.info(
+            "수집 기록이 없습니다."
+        )
+
+
+
+    # ==========================
     # Filter
     # ==========================
 
