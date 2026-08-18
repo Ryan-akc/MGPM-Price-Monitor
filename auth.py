@@ -102,73 +102,85 @@ def check_login():
     ):
         return True
 
-    st.title(
-        "🔐 MGPM Price Monitor"
+    # =================================
+    # Login Form Width
+    # =================================
+
+    left, center, right = st.columns(
+        [1, 1.2, 1]
     )
 
-    st.subheader(
-        "Login"
-    )
+    with center:
 
-    username = st.text_input(
-        "Username"
-    )
+        st.title(
+            "🔐 MGPM Price Monitor"
+        )
 
-    password = st.text_input(
-        "Password",
-        type="password"
-    )
+        st.subheader(
+            "Login"
+        )
 
-    if st.button(
-        "Login",
-        type="primary",
-        use_container_width=True
-    ):
+        username = st.text_input(
+            "Username",
+            key="login_username",
+        )
 
-        db = Session()
+        password = st.text_input(
+            "Password",
+            type="password",
+            key="login_password",
+        )
 
-        try:
+        if st.button(
+            "Login",
+            type="primary",
+            use_container_width=True
+        ):
 
-            user = (
-                db.query(User)
-                .filter(
-                    User.username == username,
-                    User.active == 1
-                )
-                .first()
-            )
+            db = Session()
 
-            if (
-                user
-                and
-                user.password_hash
-                ==
-                hash_password(password)
-            ):
+            try:
 
-                st.session_state[
-                    "authenticated"
-                ] = True
-
-                st.session_state[
-                    "username"
-                ] = user.username
-
-                st.session_state[
-                    "role"
-                ] = user.role
-
-                st.rerun()
-
-            else:
-
-                st.error(
-                    "Invalid username or password."
+                user = (
+                    db.query(User)
+                    .filter(
+                        User.username == username,
+                        User.active == 1
+                    )
+                    .first()
                 )
 
-        finally:
+                if (
+                    user
+                    and
+                    user.password_hash
+                    ==
+                    hash_password(password)
+                ):
 
-            db.close()
+                    st.session_state[
+                        "authenticated"
+                    ] = True
+
+                    st.session_state[
+                        "username"
+                    ] = user.username
+
+                    st.session_state[
+                        "role"
+                    ] = user.role
+
+                    st.rerun()
+
+                else:
+
+                    st.error(
+                        "Invalid username or password."
+                    )
+
+            finally:
+
+                db.close()
 
     return False
 
