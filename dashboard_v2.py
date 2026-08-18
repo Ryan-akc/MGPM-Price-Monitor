@@ -1,71 +1,132 @@
 import streamlit as st
-import pandas as pd
-import plotly.express as px
 
-from database import Product, Price, CollectionLog, Session
-from database import Alert
+from database import Product
 
-def format_datetime(value):
-
-    if not value:
-        return "-"
-
-    try:
-
-        dt = pd.to_datetime(
-            value,
-            format="mixed"
-        )
-
-        return (
-            dt.strftime("%m-%d")
-            +
-            "\n"
-            +
-            dt.strftime("%H:%M")
-        )
-
-    except:
-
-        return "-"
+from dashboard.filters import render_filters
+from dashboard.matrix import render_price_matrix
+from dashboard.history import render_price_history
+from dashboard.collection_monitor import render_collection_monitor
+from dashboard.scheduler_status import render_scheduler_status
+from dashboard.price_movement import render_price_movement
+from dashboard.alert_center import render_alert_center
 
 
+# =================================
+# Dashboard UI / UX Style
+# =================================
 
-
-
-def dashboard_page(session):
-
-    # ==========================
-    # Dashboard Style
-    # ==========================
+def apply_dashboard_style():
 
     st.markdown(
         """
         <style>
 
-        html, body, [class*="css"] {
-            font-size: 14px;
+        /* =================================
+           Main Container
+           ================================= */
+
+        .block-container {
+            max-width: 1600px;
+            padding-top: 1.5rem;
+            padding-bottom: 2rem;
+            padding-left: 2rem;
+            padding-right: 2rem;
         }
+
+
+        /* =================================
+           Main Title
+           ================================= */
 
         h1 {
-            font-size: 28px !important;
+            font-size: 2rem !important;
+            margin-top: 0 !important;
+            margin-bottom: 0.15rem !important;
         }
 
+
+        /* =================================
+           Section Title
+           ================================= */
+
         h2 {
-            font-size: 20px !important;
+            font-size: 1.45rem !important;
+            margin-top: 0.6rem !important;
+            margin-bottom: 0.5rem !important;
         }
 
         h3 {
-            font-size: 17px !important;
+            font-size: 1.15rem !important;
+            margin-top: 1rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+
+
+        /* =================================
+           Caption
+           ================================= */
+
+        [data-testid="stCaptionContainer"] {
+            font-size: 0.82rem;
+        }
+
+
+        /* =================================
+           Divider
+           ================================= */
+
+        hr {
+            margin-top: 1.1rem !important;
+            margin-bottom: 1.1rem !important;
+        }
+
+
+        /* =================================
+           Metrics
+           ================================= */
+
+        [data-testid="stMetricLabel"] {
+            font-size: 0.8rem;
         }
 
         [data-testid="stMetricValue"] {
-            font-size: 20px !important;
+            font-size: 1.55rem;
         }
 
-        [data-testid="stMetricLabel"] {
-            font-size: 12px !important;
+
+        /* =================================
+           Alert / Status
+           ================================= */
+
+        [data-testid="stAlert"] {
+            padding-top: 0.45rem;
+            padding-bottom: 0.45rem;
         }
+
+
+        /* =================================
+           Expander
+           ================================= */
+
+        [data-testid="stExpander"] {
+            margin-top: 0.35rem;
+            margin-bottom: 0.7rem;
+        }
+
+        [data-testid="stExpander"] details {
+            border-radius: 0.5rem;
+        }
+
+
+        /* =================================
+           Expander Header
+           ================================= */
+
+        [data-testid="stExpander"] summary {
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
 
         </style>
         """,
@@ -73,1018 +134,195 @@ def dashboard_page(session):
     )
 
 
-    # 최신 DB 반영
-    session.close()
-    session = Session()
+# =================================
+# Main Dashboard
+# =================================
 
+def dashboard_page(session):
+
+    # =================================
+    # Common Style
+    # =================================
+
+    apply_dashboard_style()
+
+
+    # =================================
+    # Header
+    # =================================
 
     st.title(
-    "📊 Price Monitor Dashboard"
-)
+        "📊 MGPM Price Monitor"
+    )
 
     st.caption(
-    "MGPM v0.2 Price Intelligence"
-)
-    # ==========================
-    # 자동 수집 상태
-    # ==========================
-
-    st.subheader("⚙ 자동 수집 상태")
-
-    latest_log = (
-        session.query(CollectionLog)
-        .order_by(CollectionLog.id.desc())
-        .first()
+        "Global Market Price Monitoring Dashboard"
     )
 
-    if latest_log:
 
-        st.markdown("")
+    # =================================
+    # Product Data
+    # =================================
 
-        c1, c2, c3, c4 = st.columns(4)
-
-        with c1:
-            st.metric(
-                "🕒 마지막 자동수집",
-                format_datetime(
-                    latest_log.end_time
-                )
-            )
-
-        with c2:
-            st.metric(
-                "📦 수집 상품",
-                latest_log.total_count
-            )
-
-        with c3:
-            st.metric(
-                "✅ 성공",
-                latest_log.success_count
-            )
-
-        with c4:
-            st.metric(
-                "❌ 실패",
-                latest_log.fail_count
-            )
-
-        st.markdown("")
-
-        if latest_log.status == "SUCCESS":
-
-            st.success(
-                "🟢 Collection Status : SUCCESS"
-            )
-
-        else:
-
-            st.error(
-                f"🔴 Collection Status : {latest_log.status}"
-            )
-    
-
-    # ==========================
-    # Collection Monitoring
-    # ==========================
-
-    st.subheader("📡 Collection Monitoring")
-
-
-    logs = (
-        session.query(CollectionLog)
-        .order_by(
-            CollectionLog.id.desc()
-        )
-        .limit(30)
+    products_db = (
+        session
+        .query(Product)
         .all()
     )
 
-
-    if logs:
-
-
-        total_runs = len(logs)
-
-
-        success_runs = len(
-            [
-                log for log in logs
-                if log.status == "SUCCESS"
-            ]
-        )
-
-
-        fail_runs = (
-            total_runs
-            -
-            success_runs
-        )
-
-
-        success_rate = (
-            success_runs
-            /
-            total_runs
-            *
-            100
-        )
-
-
-        avg_products = (
-            sum(
-                log.total_count
-                for log in logs
-                if log.total_count
-            )
-            /
-            total_runs
-        )
-
-
-        c1, c2, c3, c4 = st.columns(4)
-
-
-        with c1:
-
-            st.metric(
-                "🔄 실행 횟수",
-                total_runs
-            )
-
-
-        with c2:
-
-            st.metric(
-                "✅ 성공",
-                success_runs
-            )
-
-
-        with c3:
-
-            st.metric(
-                "❌ 실패",
-                fail_runs
-            )
-
-
-        with c4:
-
-            st.metric(
-                "📈 성공률",
-                f"{success_rate:.1f}%"
-            )
-
-
-        st.caption(
-            f"평균 수집 상품 : {avg_products:.1f}개"
-        )
-
-
-    else:
-
-        st.info(
-            "수집 기록이 없습니다."
-        )
-
-
-
-    # ==========================
-    # Filter
-    # ==========================
-
-    st.subheader("🔎 Filter")
-
-
-    all_products = (
-        session.query(Product)
-        .all()
+    products = sorted(
+        {
+            p.product
+            for p in products_db
+            if p.product
+        }
     )
-
 
     countries = sorted(
-        list(
-            set(
-                p.country
-                for p in all_products
-                if p.country
-            )
-        )
+        {
+            p.country
+            for p in products_db
+            if p.country
+        }
     )
-
 
     channels = sorted(
-        list(
-            set(
-                p.channel
-                for p in all_products
-                if p.channel
-            )
-        )
+        {
+            p.channel
+            for p in products_db
+            if p.channel
+        }
     )
 
 
-    names = sorted(
-        list(
-            set(
-                p.product
-                for p in all_products
-                if p.product
-            )
-        )
+    # =================================
+    # Filters
+    # =================================
+
+    filters = render_filters(
+        products=products,
+        countries=countries,
+        channels=channels
     )
 
 
-    c1, c2, c3 = st.columns(3)
+    # =================================
+    # 1. Product × Channel Matrix
+    # =================================
+
+    render_price_matrix(
+        session,
+        filters
+    )
 
 
-    with c1:
-
-        selected_country = st.selectbox(
-            "국가",
-            ["전체"] + countries
-        )
-
-
-    with c2:
-
-        selected_channel = st.selectbox(
-            "채널",
-            ["전체"] + channels
-        )
-
-
-    with c3:
-
-        selected_product = st.selectbox(
-            "제품",
-            ["전체"] + names
-        )
-
-
-
-    products = all_products
-
-
-    if selected_country != "전체":
-
-        products = [
-            p for p in products
-            if p.country == selected_country
-        ]
-
-
-    if selected_channel != "전체":
-
-        products = [
-            p for p in products
-            if p.channel == selected_channel
-        ]
-
-
-    if selected_product != "전체":
-
-        products = [
-            p for p in products
-            if p.product == selected_product
-        ]
-
-
+    # =================================
+    # Separator
+    # =================================
 
     st.divider()
 
 
-    # ==========================
-    # Price Analysis
-    # ==========================
+    # =================================
+    # 2. Price History
+    # =================================
 
-    st.subheader("📊 Price Analysis")
+    with st.expander(
+        "📈 Price History",
+        expanded=False
+    ):
 
+        st.caption(
+            "Product / Channel별 과거 가격 흐름을 확인합니다."
+        )
 
-    if products:
-
-
-        analysis_product = st.selectbox(
-            "분석 상품",
-            [
-                p.product
-                for p in products
-            ],
-            key="analysis_product"
+        render_price_history(
+            session,
+            filters
         )
 
 
-        analysis_product_obj = (
-            session.query(Product)
-            .filter(
-                Product.product == analysis_product
-            )
-            .first()
+    # =================================
+    # 3. Advanced Price Analysis
+    # =================================
+
+    with st.expander(
+        "🔎 Advanced Price Analysis",
+        expanded=False
+    ):
+
+        st.caption(
+            "가격 변동을 상세하게 분석합니다."
+        )
+
+        render_price_movement(
+            session,
+            filters
         )
 
 
-        analysis_prices = (
-            session.query(Price)
-            .filter(
-                Price.product_id ==
-                analysis_product_obj.id
-            )
-            .order_by(
-                Price.id
-            )
-            .all()
-        )
+    # =================================
+    # Separator
+    # =================================
+
+    st.divider()
 
 
-        if analysis_prices:
+    # =================================
+    # 4. Alert Center
+    # =================================
 
-
-            price_values = [
-                float(p.price)
-                for p in analysis_prices
-            ]
-
-
-            current_price = price_values[-1]
-
-            avg_price = (
-                sum(price_values)
-                /
-                len(price_values)
-            )
-
-            min_price = min(
-                price_values
-            )
-
-            max_price = max(
-                price_values
-            )
-
-
-            first_price = price_values[0]
-
-
-            if first_price != 0:
-
-                change_rate = (
-                    (
-                        current_price
-                        -
-                        first_price
-                    )
-                    /
-                    first_price
-                    *
-                    100
-                )
-
-            else:
-
-                change_rate = 0
-
-
-
-            c1, c2, c3, c4 = st.columns(4)
-
-
-            with c1:
-
-                st.metric(
-                    "💰 현재 가격",
-                    f"${current_price:.2f}"
-                )
-
-
-            with c2:
-
-                st.metric(
-                    "📊 평균 가격",
-                    f"${avg_price:.2f}"
-                )
-
-
-            with c3:
-
-                st.metric(
-                    "⬇ 최저 가격",
-                    f"${min_price:.2f}"
-                )
-
-
-            with c4:
-
-                st.metric(
-                    "⬆ 최고 가격",
-                    f"${max_price:.2f}"
-                )
-
-
-
-            if change_rate > 0:
-
-                trend = (
-                    f"🔺 상승 "
-                    f"+{change_rate:.1f}%"
-                )
-
-            elif change_rate < 0:
-
-                trend = (
-                    f"🔻 하락 "
-                    f"{change_rate:.1f}%"
-                )
-
-            else:
-
-                trend = (
-                    "🟢 Stable "
-                    "0.0%"
-                )
-
-
-            st.info(
-                f"Trend : {trend}"
-            )
-
-
-        else:
-
-            st.info(
-                "분석 가능한 가격 데이터가 없습니다."
-            )
-
-
-    else:
-
-        st.info(
-            "분석 가능한 상품이 없습니다."
-        )
-
-
-    # ==========================
-    # Recent Alerts
-    # ==========================
-
-    st.subheader("🚨 Recent Alerts")
-
-
-    alerts = (
-        session.query(Alert)
-        .order_by(
-            Alert.id.desc()
-        )
-        .limit(5)
-        .all()
+    render_alert_center(
+        session,
+        filters
     )
 
 
-    if alerts:
-
-
-        for alert in alerts:
-
-
-            product = (
-                session.query(Product)
-                .filter(
-                    Product.id == alert.product_id
-                )
-                .first()
-            )
-
-
-            if product:
-
-
-                with st.container(border=True):
-
-
-                    st.markdown(
-                        f"🔻 {product.product}"
-                    )
-
-
-                    st.write(
-                        f"${alert.old_price:.2f}"
-                        " → "
-                        f"${alert.new_price:.2f}"
-                    )
-
-
-                    st.caption(
-                        f"{alert.change_rate:+.1f}% | "
-                        f"{alert.alert_type}"
-                    )
-
-
-    else:
-
-
-        st.info(
-            "최근 알림이 없습니다."
-        )
-
-
-
-    # ==========================
-    # Price Movement
-    # ==========================
-
-    st.subheader("📉 Price Movement")
-
-
-    changes = []
-
-
-    for product in products:
-
-
-        history = (
-            session.query(Price)
-            .filter(
-                Price.product_id == product.id
-            )
-            .order_by(
-                Price.id.desc()
-            )
-            .limit(2)
-            .all()
-        )
-
-
-        if len(history) >= 2:
-
-
-            current = float(
-                history[0].price
-            )
-
-            previous = float(
-                history[1].price
-            )
-
-
-            if previous != 0:
-
-
-                rate = (
-                    (current - previous)
-                    /
-                    previous
-                    *
-                    100
-                )
-
-
-                if rate != 0:
-
-                    changes.append(
-                        {
-                            "상품": product.product,
-                            "이전": previous,
-                            "현재": current,
-                            "변동률": rate
-                        }
-                    )
-
-
-
-    if changes:
-
-
-        df_change = pd.DataFrame(
-            changes
-        )
-
-
-        df_change["상태"] = (
-            df_change["변동률"]
-            .apply(
-                lambda x:
-                "🔻 Price Drop"
-                if x < 0
-                else "🔺 Price Increase"
-            )
-        )
-
-
-        df_change["이전"] = (
-            df_change["이전"]
-            .apply(
-                lambda x:
-                f"${x:.2f}"
-            )
-        )
-
-
-        df_change["현재"] = (
-            df_change["현재"]
-            .apply(
-                lambda x:
-                f"${x:.2f}"
-            )
-        )
-
-
-        df_change["변동률"] = (
-            df_change["변동률"]
-            .apply(
-                lambda x:
-                f"{x:+.1f}%"
-            )
-        )
-
-
-        st.dataframe(
-            df_change[
-                [
-                    "상태",
-                    "상품",
-                    "이전",
-                    "현재",
-                    "변동률"
-                ]
-            ],
-            hide_index=True,
-            use_container_width=True
-        )
-
-
-    else:
-
-
-        st.info(
-            "최근 가격 변동 상품이 없습니다."
-        )
-
+    # =================================
+    # Separator
+    # =================================
 
     st.divider()
 
 
+    # =================================
+    # 5. Collection Monitoring
+    # =================================
 
-    # ==========================
-    # 상품 정보 Card
-    # ==========================
-
-    st.subheader("📦 Product Monitor")
-
-    if not products:
-
-        st.warning(
-            "조건에 맞는 상품이 없습니다."
-        )
-
-    else:
-
-        for product in products:
-
-            latest_price = (
-                session.query(Price)
-                .filter(
-                    Price.product_id == product.id
-                )
-                .order_by(
-                    Price.date.desc()
-                )
-                .first()
-            )
-
-            previous_price = (
-                session.query(Price)
-                .filter(
-                    Price.product_id == product.id
-                )
-                .order_by(
-                    Price.date.desc()
-                )
-                .offset(1)
-                .first()
-            )
-
-            if latest_price and previous_price:
-
-                rate = (
-                    (
-                        latest_price.price
-                        -
-                        previous_price.price
-                    )
-                    /
-                    previous_price.price
-                    *
-                    100
-                )
-
-            else:
-
-                rate = 0
+    render_collection_monitor(
+        session
+    )
 
 
-            if rate > 0:
-
-                change = f"🔺 +{rate:.1f}%"
-
-            elif rate < 0:
-
-                change = f"🔻 {rate:.1f}%"
-
-            else:
-
-                change = "➖ 0.0%"
-
-
-            with st.container(border=True):
-
-                st.markdown(
-                    f"#### 🛍️ {product.product}"
-                )
-
-                st.caption(
-                    f"{product.country} | {product.channel}"
-                )
-
-                c1, c2, c3 = st.columns(3)
-
-                with c1:
-
-                    st.markdown("**Current**")
-
-                    if latest_price:
-
-                        st.write(
-                            f"${latest_price.price:.2f}"
-                        )
-
-                    else:
-
-                        st.write("-")
-
-                with c2:
-
-                    st.markdown("**Previous**")
-
-                    if previous_price:
-
-                        st.write(
-                            f"${previous_price.price:.2f}"
-                        )
-
-                    else:
-
-                        st.write("-")
-
-                with c3:
-
-                    st.markdown("**Change**")
-
-                    st.write(change)
-
-                st.divider()
-
-                left, right = st.columns([5, 1])
-
-                with left:
-
-                    if latest_price:
-
-                        st.caption(
-                            "Updated : "
-                            +
-                            format_datetime(
-                                latest_price.date
-                            )
-                        )
-
-                with right:
-
-                    if product.url:
-
-                        st.link_button(
-                            "🔗 View",
-                            product.url
-                        )
+    # =================================
+    # Separator
+    # =================================
 
     st.divider()
 
-    # ==========================
-    # 가격 추이
-    # ==========================
 
-    st.subheader("📈 가격 추이")
+    # =================================
+    # 6. System Status
+    # =================================
 
-    if products:
+    render_scheduler_status(
+        session
+    )
 
 
-        selected = st.selectbox(
-            "상품 선택",
-            [
-                p.product
-                for p in products
-            ]
-        )
+# =================================
+# Alert Management Page
+# =================================
 
+def alert_management_page(session):
 
-        period = st.selectbox(
-            "조회 기간",
-            [
-                "최근 7일",
-                "전체"
-            ]
-        )
+    apply_dashboard_style()
 
+    st.title(
+        "🚨 Price Alert Management"
+    )
 
-        selected_product = (
-            session.query(Product)
-            .filter(
-                Product.product == selected
-            )
-            .first()
-        )
-
-
-        prices = (
-            session.query(Price)
-            .filter(
-                Price.product_id ==
-                selected_product.id
-            )
-            .order_by(
-                Price.id
-            )
-            .all()
-        )
-
-
-        if period == "최근 7일":
-
-            prices = prices[-7:]
-
-
-        if prices:
-
-
-            current_price = prices[-1].price
-
-            min_price = min(
-                p.price
-                for p in prices
-            )
-
-            max_price = max(
-                p.price
-                for p in prices
-            )
-
-
-            st.caption(
-                f"📌 가격 변경 이력 : {len(prices)}건"
-            )
-
-
-            c1, c2, c3 = st.columns(3)
-
-
-            with c1:
-
-                st.metric(
-                    "💰 현재 가격",
-                    f"${current_price:.2f}"
-                )
-
-
-            with c2:
-
-                st.metric(
-                    "⬇ 최저 가격",
-                    f"${min_price:.2f}"
-                )
-
-
-            with c3:
-
-                st.metric(
-                    "⬆ 최고 가격",
-                    f"${max_price:.2f}"
-                )
-
-
-
-            if (
-                current_price ==
-                min_price ==
-                max_price
-            ):
-
-                st.info(
-                    "🟢 가격 안정 상태 - 최근 가격 변동 없음"
-                )
-
-
-
-            df = pd.DataFrame(
-                [
-                    {
-                        "날짜": p.date,
-                        "가격": p.price
-                    }
-                    for p in prices
-                ]
-            )
-
-
-
-            df["날짜"] = pd.to_datetime(
-                df["날짜"],
-                format="mixed",
-                errors="coerce"
-            )
-
-
-
-            df = (
-                df.dropna()
-                .sort_values("날짜")
-            )
-
-
-
-            df["표시"] = (
-                df["날짜"]
-                .dt.strftime(
-                    "%m-%d %H:%M"
-                )
-            )
-
-
-
-            fig = px.line(
-                df,
-                x="표시",
-                y="가격",
-                markers=True
-            )
-
-
-            # 가격 동일 시 Y축 확대
-            if min_price == max_price:
-
-                margin = max(
-                    min_price * 0.01,
-                    0.1
-                )
-
-                fig.update_yaxes(
-                    range=[
-                        min_price - margin,
-                        max_price + margin
-                    ]
-                )
-
-
-
-            fig.update_traces(
-                hovertemplate=
-                "날짜 : %{x}<br>"
-                "가격 : $%{y:.2f}"
-            )
-
-
-
-            fig.update_layout(
-                height=220,
-                margin=dict(
-                    l=20,
-                    r=20,
-                    t=10,
-                    b=20
-                ),
-                xaxis_title="",
-                yaxis_title="USD",
-                hovermode="x unified"
-            )
-
-
-
-            st.plotly_chart(
-                fig,
-                use_container_width=True
-            )
-
-
-        else:
-
-            st.info(
-                "가격 데이터 없음"
-            )
-
-
-    else:
-
-        st.info(
-            "선택 가능한 상품이 없습니다."
-        )
-
-
-    session.close()
+    render_alert_center(
+        session,
+        None
+    )

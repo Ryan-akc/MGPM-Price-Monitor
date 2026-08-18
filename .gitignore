@@ -7,13 +7,49 @@ __pycache__/
 
 # Environment
 venv/
+.venv/
 .env
 
-# Streamlit
+# Streamlit local settings
 .streamlit/
 
+# Chrome local files
+chrome_profile/
+chrome_cdp/
+
 # Backup files
-*_ë°±ì—….py
+*.bak
+*.bak_*
+*.backup
+*.backup_*
+*_backup.py
+*_backup*.py
+*.before_*.bak
+*_¹é¾÷.py
+
+# Backup / archive directories
+backup_publish/
+archive/
+
+# Old dashboard files
+dashboard_old.py
+dashboard_v2_backup.py
+
+# Test files
+test_*.py
+
+# Local generated files
+stylevana_feed.csv
+
+# Temporary command artifacts
+0
+1
+copy
+dir
+findstr
+python
+threshold
+RISE_LIMIT
 
 # OS
 Thumbs.db
