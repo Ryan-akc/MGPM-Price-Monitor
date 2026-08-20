@@ -65,7 +65,6 @@ def _parse_price(value):
 
         return None
 
-
 # =================================
 # Get Stylevana Feed Price
 # =================================
@@ -74,10 +73,6 @@ def get_stylevana_feed_price(
     url,
     feed_file=FEED_FILE
 ):
-
-    # =================================
-    # Feed File Check
-    # =================================
 
     if not feed_file:
 
@@ -98,10 +93,6 @@ def get_stylevana_feed_price(
 
             reader = csv.DictReader(f)
 
-            # =================================
-            # Target URL
-            # =================================
-
             target_url = normalize_url(url)
 
             if not target_url:
@@ -113,8 +104,11 @@ def get_stylevana_feed_price(
                 return None
 
             # =================================
-            # Find Product
+            # 동일 URL이 여러 개 있을 수 있음
+            # 유효한 가격을 끝까지 검색
             # =================================
+
+            matched = False
 
             for row in reader:
 
@@ -125,9 +119,7 @@ def get_stylevana_feed_price(
                 if feed_url != target_url:
                     continue
 
-                # =================================
-                # Currency
-                # =================================
+                matched = True
 
                 currency = str(
                     row.get(
@@ -138,15 +130,7 @@ def get_stylevana_feed_price(
 
                 if currency != "USD":
 
-                    print(
-                        f"Stylevana 통화 오류: {currency}"
-                    )
-
-                    return None
-
-                # =================================
-                # Price
-                # =================================
+                    continue
 
                 raw_price = row.get(
                     "price"
@@ -156,23 +140,33 @@ def get_stylevana_feed_price(
                     raw_price
                 )
 
+                # =================================
+                # 가격이 비어 있으면 다음 동일 URL 검색
+                # =================================
+
                 if price is None:
 
-                    print(
-                        "Stylevana 가격 변환 실패"
-                    )
-
-                    return None
+                    continue
 
                 return price
 
             # =================================
-            # URL Not Found
+            # 동일 URL은 있었지만
+            # 유효한 가격이 없는 경우
             # =================================
 
-            print(
-                "Stylevana 상품 URL을 찾지 못했습니다."
-            )
+            if matched:
+
+                print(
+                    "Stylevana 상품은 Feed에 있으나 "
+                    "유효한 가격이 없습니다."
+                )
+
+            else:
+
+                print(
+                    "Stylevana 상품 URL을 찾지 못했습니다."
+                )
 
             return None
 

@@ -230,29 +230,32 @@ def set_amazon_us_location(page):
         # Deliver to 클릭
         # ----------------------------------------------------
 
-        deliver = page.get_by_text(
-            "Deliver to",
-            exact=True
+        # Amazon UI는 언어에 따라 "Deliver to" 텍스트가
+        # 대한민국 / 배송처 등으로 표시될 수 있으므로
+        # 고정 텍스트 selector를 사용하지 않는다.
+        location = page.locator(
+            "#nav-global-location-slot"
         )
 
-        if deliver.count() == 0:
+        if location.count() == 0:
 
             print(
-                "❌ Amazon Deliver to 요소를 "
-                "찾지 못했습니다."
+                "❌ Amazon 배송지 영역을 찾지 못했습니다."
             )
 
             return False
 
         clicked = False
 
-        for i in range(deliver.count()):
+        for i in range(location.count()):
 
             try:
 
-                if deliver.nth(i).is_visible():
+                item = location.nth(i)
 
-                    deliver.nth(i).click(
+                if item.is_visible():
+
+                    item.click(
                         timeout=10000
                     )
 
@@ -267,7 +270,7 @@ def set_amazon_us_location(page):
         if not clicked:
 
             print(
-                "❌ Amazon 배송지 버튼 클릭 실패"
+                "❌ Amazon 배송지 영역 클릭 실패"
             )
 
             return False
@@ -305,37 +308,37 @@ def set_amazon_us_location(page):
         )
 
         # ----------------------------------------------------
-        # Done 버튼
+        # ZIP 적용 버튼
         # ----------------------------------------------------
 
-        done = page.get_by_role(
-            "button",
-            name="Done",
-            exact=True
+        apply_button = page.locator(
+            "#GLUXZipUpdate"
         )
 
-        if done.count() == 0:
+        if apply_button.count() == 0:
 
             print(
-                "❌ Amazon 배송지 Done 버튼을 "
+                "❌ Amazon ZIP 적용 버튼을 "
                 "찾지 못했습니다."
             )
 
             return False
 
-        clicked_done = False
+        clicked_apply = False
 
-        for i in range(done.count()):
+        for i in range(apply_button.count()):
 
             try:
 
-                if done.nth(i).is_visible():
+                item = apply_button.nth(i)
 
-                    done.nth(i).click(
+                if item.is_visible():
+
+                    item.click(
                         timeout=10000
                     )
 
-                    clicked_done = True
+                    clicked_apply = True
 
                     break
 
@@ -343,13 +346,70 @@ def set_amazon_us_location(page):
 
                 continue
 
-        if not clicked_done:
+        if not clicked_apply:
 
             print(
-                "❌ Amazon 배송지 Done 클릭 실패"
+                "❌ Amazon ZIP 적용 버튼 클릭 실패"
             )
 
             return False
+
+        print(
+            "📍 Amazon 배송지 ZIP 적용 완료"
+        )
+
+        # ----------------------------------------------------
+        # ZIP 적용 후 최종 확인
+        # ----------------------------------------------------
+
+        page.wait_for_timeout(1500)
+
+        confirm = page.locator(
+            "#GLUXConfirmClose"
+        )
+
+        if confirm.count() == 0:
+
+            print(
+                "❌ Amazon 배송지 확인 버튼을 "
+                "찾지 못했습니다."
+            )
+
+            return False
+
+        clicked_confirm = False
+
+        for i in range(confirm.count()):
+
+            try:
+
+                item = confirm.nth(i)
+
+                if item.is_visible():
+
+                    item.click(
+                        timeout=10000
+                    )
+
+                    clicked_confirm = True
+
+                    break
+
+            except Exception:
+
+                continue
+
+        if not clicked_confirm:
+
+            print(
+                "❌ Amazon 배송지 확인 버튼 클릭 실패"
+            )
+
+            return False
+
+        print(
+            "✅ Amazon 배송지 확인 버튼 클릭"
+        )
 
         # ----------------------------------------------------
         # Amazon 배송지 적용 대기
