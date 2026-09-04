@@ -88,7 +88,7 @@ def format_currency_price(
 
     except (
         TypeError,
-        ValueError
+        ValueError,
     ):
 
         return str(value)
@@ -128,7 +128,7 @@ def format_change(
 
     except (
         TypeError,
-        ValueError
+        ValueError,
     ):
 
         return str(value)
@@ -299,10 +299,6 @@ def color_change(
         value
     ).strip()
 
-    # -----------------------------
-    # DOWN = RED
-    # -----------------------------
-
     if text.startswith("▼"):
 
         return (
@@ -310,20 +306,12 @@ def color_change(
             "font-weight: 600;"
         )
 
-    # -----------------------------
-    # UP = BLUE
-    # -----------------------------
-
     if text.startswith("▲"):
 
         return (
             "color: blue; "
             "font-weight: 600;"
         )
-
-    # -----------------------------
-    # Numeric fallback
-    # -----------------------------
 
     try:
 
@@ -356,7 +344,7 @@ def color_change(
 
     except (
         TypeError,
-        ValueError
+        ValueError,
     ):
 
         return ""
@@ -413,6 +401,55 @@ def color_policy_status(
         )
 
     return "color: black;"
+
+
+# =================================
+# Product Link
+# =================================
+
+def make_product_link(
+    url,
+    product_name,
+):
+
+    if not url:
+        return ""
+
+    url = str(url).strip()
+
+    if not url:
+        return ""
+
+    product_name = (
+        str(product_name).strip()
+        if product_name
+        else "-"
+    )
+
+    # =================================
+    # IMPORTANT
+    #
+    # 실제 판매 URL은 그대로 유지합니다.
+    # 기존 fragment가 있다면 제거합니다.
+    #
+    # 상품명은 fragment에 넣어서
+    # LinkColumn의 display_text 정규식으로
+    # 화면에는 상품명만 표시합니다.
+    #
+    # fragment는 서버로 전송되지 않으므로
+    # 실제 판매페이지에는 영향을 주지 않습니다.
+    # =================================
+
+    base_url = url.split(
+        "#",
+        1,
+    )[0]
+
+    return (
+        f"{base_url}"
+        f"#MGPM_PRODUCT_"
+        f"{product_name}"
+    )
 
 
 # =================================
@@ -499,20 +536,32 @@ def render_price_matrix(
         selected_countries = ["All"]
 
     product_all = (
-        "All" in selected_products
+        "All"
+        in
+        selected_products
     )
 
     channel_all = (
-        "All" in selected_channels
+        "All"
+        in
+        selected_channels
     )
 
     country_all = (
-        "All" in selected_countries
+        "All"
+        in
+        selected_countries
     )
 
     # =================================
     # Apply Filters
     # =================================
+
+    search_text = (
+        search.strip().lower()
+        if search
+        else ""
+    )
 
     filtered_products = []
 
@@ -539,13 +588,7 @@ def render_price_matrix(
         ):
             continue
 
-        if search:
-
-            search_text = (
-                search
-                .strip()
-                .lower()
-            )
+        if search_text:
 
             product_text = (
                 f"{product.product or ''} "
@@ -668,13 +711,22 @@ def render_price_matrix(
                 continue
 
         # =================================
+        # Product Link
+        # =================================
+
+        product_link = make_product_link(
+            product.url,
+            product.product,
+        )
+
+        # =================================
         # Row
         # =================================
 
         rows.append(
             {
                 "Product":
-                    product.product or "-",
+                    product_link,
 
                 "Channel":
                     product.channel or "-",
@@ -743,40 +795,6 @@ def render_price_matrix(
     styled_df = (
         df.style
 
-        .set_properties(
-            **{
-                "text-align": "center",
-            }
-        )
-
-        .set_properties(
-            subset=[
-                "Product",
-                "Channel",
-            ],
-            **{
-                "text-align": "left",
-            }
-        )
-
-        .set_table_styles(
-            [
-                {
-                    "selector": "th",
-                    "props": [
-                        (
-                            "text-align",
-                            "center",
-                        ),
-                    ],
-                }
-            ]
-        )
-
-        # -----------------------------
-        # Change / Change %
-        # -----------------------------
-
         .map(
             color_change,
             subset=[
@@ -785,20 +803,12 @@ def render_price_matrix(
             ],
         )
 
-        # -----------------------------
-        # Market Status
-        # -----------------------------
-
         .map(
             color_market_status,
             subset=[
                 "Market Status",
             ],
         )
-
-        # -----------------------------
-        # Policy Status
-        # -----------------------------
 
         .map(
             color_policy_status,
@@ -809,74 +819,86 @@ def render_price_matrix(
     )
 
     # =================================
-    # Display
+    # Column Configuration
+    # =================================
+
+    column_config = {
+
+        # 상품명 클릭 → 실제 Product.url
+        # LinkColumn이 클릭 가능한 링크로 표시
+        # display_text는 fragment에서 상품명만 추출
+        "Product":
+            st.column_config.LinkColumn(
+                "Product",
+                width=180,
+                display_text=(
+                    r"#MGPM_PRODUCT_(.*)"
+                ),
+            ),
+
+        "Channel":
+            st.column_config.TextColumn(
+                "Channel",
+                width=80,
+            ),
+
+        "Country":
+            st.column_config.TextColumn(
+                "Country",
+                width=70,
+            ),
+
+        "Previous Price":
+            st.column_config.TextColumn(
+                "Previous Price",
+                width=105,
+            ),
+
+        "Price":
+            st.column_config.TextColumn(
+                "Price",
+                width=80,
+            ),
+
+        "Change":
+            st.column_config.TextColumn(
+                "Change",
+                width=90,
+            ),
+
+        "Change %":
+            st.column_config.TextColumn(
+                "Change %",
+                width=75,
+            ),
+
+        "Policy Status":
+            st.column_config.TextColumn(
+                "Policy Status",
+                width=105,
+            ),
+
+        "Market Status":
+            st.column_config.TextColumn(
+                "Market Status",
+                width=105,
+            ),
+
+        "Date":
+            st.column_config.TextColumn(
+                "Date",
+                width=120,
+            ),
+    }
+
+    # =================================
+    # Matrix
     # =================================
 
     st.dataframe(
         styled_df,
-        use_container_width=True,
+        column_config=column_config,
         hide_index=True,
-
-        column_config={
-
-            "Product":
-                st.column_config.TextColumn(
-                    "Product",
-                    width=300,
-                ),
-
-            "Channel":
-                st.column_config.TextColumn(
-                    "Channel",
-                    width=120,
-                ),
-
-            "Country":
-                st.column_config.TextColumn(
-                    "Country",
-                    width=100,
-                ),
-
-            "Previous Price":
-                st.column_config.TextColumn(
-                    "Previous Price",
-                    width=120,
-                ),
-
-            "Price":
-                st.column_config.TextColumn(
-                    "Price",
-                    width=100,
-                ),
-
-            "Change":
-                st.column_config.TextColumn(
-                    "Change",
-                    width=110,
-                ),
-
-            "Change %":
-                st.column_config.TextColumn(
-                    "Change %",
-                    width=100,
-                ),
-
-            "Policy Status":
-                st.column_config.TextColumn(
-                    "Policy Status",
-                    width=130,
-                ),
-
-            "Market Status":
-                st.column_config.TextColumn(
-                    "Market Status",
-                    width=130,
-                ),
-
-            "Date":
-                st.column_config.TextColumn(
-                    "Date",
-                    width=145,
-                ),
-        },
+        width="stretch",
+        height=650,
     )
